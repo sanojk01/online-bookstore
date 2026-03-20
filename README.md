@@ -1,2 +1,14 @@
 # online-bookstore
-End-to-End Full Stack MERN Online Bookstore with Authentication System (JWT, Role-Based Access, Cart &amp; Orders).
+
+## 🚀 Features
+- User Authentication (JWT)
+- Role-based access (Admin/User)
+- Book listing & search
+- Cart & Order system
+- Secure APIs
+
+## 🛠 Tech Stack
+- MongoDB
+- Express.js
+- React.js
+- Node.js
