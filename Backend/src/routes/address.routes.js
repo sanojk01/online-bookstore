@@ -6,7 +6,7 @@ const authMiddleware = require('../middlewares/auth.middleware');
 
 
 // POST /api/auth/users/me/addresses - Add user's address
-router.post('/users/me/addresses', validators.addAddressValidations, authMiddleware.authMiddleware, addressController.addUserAddress);
+router.post('/users/me/address', validators.addAddressValidations, authMiddleware.authMiddleware, addressController.addUserAddress);
 
 // Get /api/auth/users/me/addresses - Get user's addresses
 router.get('/users/me/addresses', authMiddleware.authMiddleware, addressController.getUserAddress);
@@ -19,3 +19,5 @@ router.delete('/users/me/addresses/:addressId', authMiddleware.authMiddleware, a
 
 // PATCH /api/auth/users/me/addresses/:addressId/default - Set user's address as default
 router.patch('/users/me/addresses/:addressId/default', authMiddleware.authMiddleware, addressController.setDefaultAddress);
+
+module.exports = router;

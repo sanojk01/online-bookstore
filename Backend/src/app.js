@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 
 /* Routes */
 const authRoutes = require('./routes/auth.routes');
+const addressRoutes = require('./routes/address.routes');
 
 /* Middleware */
 app.use(express.json());
@@ -14,6 +15,7 @@ app.use(cookieParser());
 
 /* Use Routes */
 app.use('/api/auth', authRoutes);
+app.use('/api/addresses', addressRoutes);
 
 
 /* const upload = multer({ storage: multer.memoryStorage() }); */
