@@ -73,8 +73,30 @@ const addAddressValidations = [
     responsdWithValidationErrors
 ];
 
+const createBookValidations = [
+    body('title')
+        .notEmpty().withMessage('Title is required'),
+    body('description')
+        .optional()
+        .isString().withMessage('Description must be a string'),
+    body('price')
+        .notEmpty().withMessage('Price is required')
+        .isNumeric().withMessage('Price must be a number'),
+    body('stock')
+        .optional()
+        .isNumeric().withMessage('Stock must be a number'),
+    body('category')
+        .optional()
+        .isString().withMessage('Category must be a string'),
+        body('images')
+        .optional()
+        .isArray({ max: 5 }).withMessage('Images must be an array with a maximum of 5 items'),
+    responsdWithValidationErrors
+];
+
 module.exports = {
     registerUserValidations,
     loginUserValidations,
-    addAddressValidations
+    addAddressValidations,
+    createBookValidations
 };

@@ -28,7 +28,7 @@ async function registerUser(req, res) {
         phone,
         email,
         password: hashedPassword,
-        gender,
+        gender: gender || 'male',
         role : role || 'user'
     });
 
