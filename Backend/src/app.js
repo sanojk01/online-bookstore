@@ -8,6 +8,7 @@ const cookieParser = require('cookie-parser');
 const authRoutes = require('./routes/auth.routes');
 const addressRoutes = require('./routes/address.routes');
 const bookRoutes = require('./routes/book.routes');
+const cartRoutes = require('./routes/cart.routes');
 
 /* Middleware */
 app.use(express.json());
@@ -20,6 +21,7 @@ app.use(cookieParser());
 app.use('/api/auth', authRoutes);
 app.use('/api/users/me/addresses', addressRoutes);
 app.use('/api/books', bookRoutes);
+app.use('/api/cart', cartRoutes);
 
 
 
