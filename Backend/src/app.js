@@ -9,6 +9,8 @@ const authRoutes = require('./routes/auth.routes');
 const addressRoutes = require('./routes/address.routes');
 const bookRoutes = require('./routes/book.routes');
 const cartRoutes = require('./routes/cart.routes');
+const orderRoutes = require('./routes/order.routes');
+const paymentRoutes = require('./routes/payment.routes');
 
 /* Middleware */
 app.use(express.json());
@@ -22,6 +24,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users/me/addresses', addressRoutes);
 app.use('/api/books', bookRoutes);
 app.use('/api/cart', cartRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/payments', paymentRoutes);
 
 
 
