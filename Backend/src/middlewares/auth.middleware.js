@@ -2,7 +2,7 @@ const userModel = require('../models/user.model');
 const jwt = require('jsonwebtoken');
 const config = require('../config/config');
 
-// Middleware to authenticate user using JWT
+
 async function authMiddleware(req, res, next) {
     const refreshToken = req.cookies.refreshToken;
 

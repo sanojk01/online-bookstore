@@ -6,6 +6,7 @@ const imagekit = new ImageKit({
   privateKey: config.IMAGEKIT_PRIVATE_KEY 
 });
 
+// Upload file to ImageKit
 async function uploadFile(buffer) {
   try {
     const response = await imagekit.files.upload({

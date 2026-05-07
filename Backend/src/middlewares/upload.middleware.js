@@ -1,7 +1,7 @@
 const multer = require('multer');
 const path = require('path');
 
-// Multer setup for handling file uploads (e.g., book images)
+
 const storage = multer.memoryStorage();
 
 const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
