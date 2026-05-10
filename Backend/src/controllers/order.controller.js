@@ -15,12 +15,6 @@ async function placeOrder(req, res) {
       return res.status(400).json({ message: "Invalid book ID or quantity" });
     }
 
-    const allowedMethods = ["card", "upi", "netbanking"];
-
-    if (!paymentMethod || !allowedMethods.includes(paymentMethod)) {
-      return res.status(400).json({ message: `Invalid payment method. Allowed: ${allowedMethods.join(', ')}` });
-    }
-
     // Check if user has at least one address
 
     if (!user.addresses || user.addresses.length === 0) {
@@ -66,27 +60,6 @@ async function placeOrder(req, res) {
     // Calculate total price
     const totalPrice = book.price * qty;
 
-    // Process payment
-    const paymentResult = processDummyPayment(paymentMethod, paymentDetails);
-
-    let paymentStatus = "unpaid";
-    let paymentInfo = {};
-
-    if (!paymentResult.success) {
-      paymentStatus = "failed";
-      paymentInfo = {
-        paymentMethod,
-        failureReason: paymentResult.reason,
-      };
-    } else {
-      paymentStatus = "paid";
-      paymentInfo = {
-        paymentMethod,
-        transactionId: `TXN${Date.now()}${Math.floor(Math.random() * 1000)}`,
-        paidAt: new Date(),
-        failureReason: null,
-      }
-    }
 
     // STEP 2: Create the order ─────────
 
@@ -102,24 +75,17 @@ async function placeOrder(req, res) {
       totalPrice,
       shippingAddress: userAddress,
       status: "pending",
-      paymentStatus: paymentStatus,
-      paymentInfo: paymentInfo,
+      paymentStatus: "unpaid",
+      paymentInfo: {},
     });
 
-    // Reduce stock after order creation
-    if (paymentStatus === "paid") {
-      book.stock -= qty;
-      await book.save();
-    }
 
     // ── STEP 3: Populate Response ─────
 
     await newOrder.populate("items.book", "title price");
 
     res.status(201).json({
-      message: paymentStatus === "paid"
-        ? "Order placed & paid"
-        : "Order created but payment failed",
+      message: "Order created. Please complete payment to confirm.",
       order: newOrder,
     });
   } catch (error) {
@@ -133,14 +99,6 @@ async function placeOrder(req, res) {
 async function placeOrderFromCart(req, res) {
   try {
     const user = req.user;
-
-    const { paymentMethod, paymentDetails } = req.body;
-
-    const allowedMethods = ["card", "upi", "netbanking"];
-
-    if (!paymentMethod || !allowedMethods.includes(paymentMethod)) {
-      return res.status(400).json({ message: `Invalid payment method. Allowed: ${allowedMethods.join(', ')}` });
-    }
 
     const cart = await cartModel
       .findOne({ user: user._id })
@@ -206,28 +164,6 @@ async function placeOrderFromCart(req, res) {
       totalPrice += book.price * item.quantity;
     }
 
-    // Process payment
-    const paymentResult = processDummyPayment(paymentMethod, paymentDetails);
-
-    let paymentStatus = "unpaid";
-    let paymentInfo = {};
-
-    if (!paymentResult.success) {
-      paymentStatus = "failed";
-      paymentInfo = {
-        paymentMethod,
-        failureReason: paymentResult.reason,
-      };
-    } else {
-      paymentStatus = "paid";
-      paymentInfo = {
-        paymentMethod,
-        transactionId: `TXN${Date.now()}${Math.floor(Math.random() * 1000)}`,
-        paidAt: new Date(),
-        failureReason: null,
-      }
-    }
-
     // Create the order
 
     const newOrder = await orderModel.create({
@@ -236,19 +172,9 @@ async function placeOrderFromCart(req, res) {
       totalPrice,
       shippingAddress: userAddress,
       status: "pending",
-      paymentStatus,
-      paymentInfo,
+      paymentStatus: "unpaid",
+      paymentInfo: {},
     });
-
-    // Reduce stock for each book and clear the cart
-
-    if (paymentStatus === "paid") {
-      for (const item of cart.items) {
-         const book = item.book;
-         book.stock -= item.quantity;
-         await book.save();
-      }
-    }
 
     // Clear the cart
 
@@ -259,9 +185,7 @@ async function placeOrderFromCart(req, res) {
     await newOrder.populate("items.book", "title price");
 
     res.status(201).json({
-      message: paymentStatus === "paid"
-          ? "Order placed & payment successful"
-          : "Order created but payment failed",
+      message: "Order created. Please complete payment to confirm.",
       order: newOrder,
     });
     

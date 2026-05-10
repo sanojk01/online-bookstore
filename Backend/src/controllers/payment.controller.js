@@ -1,5 +1,117 @@
 const orderModel = require("../models/order.model");
+const bookModel = require("../models/book.model");
 const processDummyPayment = require("../utils/dummyPayment");
+
+
+async function payOrder(req, res) {
+  try {
+    const { orderId } = req.params;
+    const { paymentMethod, paymentDetails } = req.body;
+ 
+    const allowedMethods = ["card", "upi", "netbanking"];
+ 
+    if (!paymentMethod || !allowedMethods.includes(paymentMethod)) {
+      return res.status(400).json({
+        message: `Invalid payment method. Allowed: ${allowedMethods.join(", ")}`,
+      });
+    }
+ 
+    const order = await orderModel.findById(orderId);
+ 
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+ 
+    // Only the buyer can pay for their own order
+    if (order.buyer.toString() !== req.user._id.toString()) {
+      return res
+        .status(403)
+        .json({ message: "You are not authorized to pay for this order" });
+    }
+ 
+    // Only unpaid or failed-payment orders can be retried
+    if (!["unpaid", "failed"].includes(order.paymentStatus)) {
+      return res.status(400).json({
+        message: `Order is already in payment status: "${order.paymentStatus}"`,
+      });
+    }
+ 
+    // Order must still be in pending state
+    if (order.status !== "pending") {
+      return res.status(400).json({
+        message: `Cannot pay for an order with status: "${order.status}"`,
+      });
+    }
+ 
+    // Re-validate stock before charging
+    for (const item of order.items) {
+      const book = await bookModel.findById(item.book);
+ 
+      if (!book) {
+        return res.status(404).json({
+          message: `Book with ID ${item.book} no longer exists`,
+        });
+      }
+ 
+      if (book.stock < item.quantity) {
+        return res.status(400).json({
+          message: `Insufficient stock for "${book.title}". Available: ${book.stock}`,
+        });
+      }
+    }
+ 
+    // Process payment
+    const paymentResult = processDummyPayment(paymentMethod, paymentDetails);
+ 
+    if (!paymentResult.success) {
+      // Update payment info with failure details but keep order alive for retry
+      order.paymentStatus = "failed";
+      order.paymentInfo = {
+        paymentMethod,
+        failureReason: paymentResult.reason,
+      };
+      await order.save();
+ 
+      return res.status(402).json({
+        message: "Payment failed",
+        reason: paymentResult.reason,
+        order,
+      });
+    }
+ 
+    // Payment succeeded — update order
+    order.paymentStatus = "paid";
+    order.paymentInfo = {
+      paymentMethod,
+      transactionId: `TXN${Date.now()}${Math.floor(Math.random() * 1000)}`,
+      paidAt: new Date(),
+      failureReason: null,
+    };
+ 
+    await order.save();
+ 
+    // Reduce stock for each book now that payment is confirmed
+    for (const item of order.items) {
+      const book = await bookModel.findById(item.book);
+      if (book) {
+        book.stock -= item.quantity;
+        await book.save();
+      }
+    }
+ 
+    await order.populate("items.book", "title price");
+ 
+    return res.status(200).json({
+      message: "Payment successful",
+      order,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error processing payment", error: error.message });
+  }
+}
+
 
 async function retryPayment(req, res) {
   try {
@@ -119,6 +231,7 @@ async function getPaymentStatus(req, res) {
 
 
 module.exports = {
+  payOrder,
   retryPayment,
   getPaymentStatus,
 };

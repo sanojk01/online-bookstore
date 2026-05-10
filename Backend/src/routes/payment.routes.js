@@ -5,6 +5,9 @@ const paymentController = require("../controllers/payment.controller");
 const authMiddlewares = require("../middlewares/auth.middleware");
 
 
+// Make Payment For Order
+router.post("/:orderId", authMiddlewares.authMiddleware, paymentController.payOrder);
+
 // retry payment for an order
 router.post("/:orderId/retry", authMiddlewares.authMiddleware, paymentController.retryPayment);
 
