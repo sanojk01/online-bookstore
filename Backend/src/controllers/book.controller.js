@@ -67,51 +67,56 @@ async function createBook(req, res) {
 async function getBooks(req, res) {
   try {
     const {
-      query,
+      search,       // frontend sends 'search'
       category,
       minPrice,
       maxPrice,
       page = 1,
       limit = 10,
     } = req.query;
-
+ 
     const filter = {};
-
-    if (query) {
-      filter.$text = { $search: query };
+ 
+    // ── Search: regex on title + description (no text index needed)
+    if (search && search.trim()) {
+      const regex = new RegExp(search.trim(), 'i');
+      filter.$or = [
+        { title:       regex },
+        { description: regex },
+        { category:    regex },
+      ];
     }
-
-    if (category) {
-      filter.category = category;
-    } /*  */
-
+ 
+    // ── Category filter
+    if (category && category !== 'all') {
+      filter.category = { $regex: new RegExp(`^${category}$`, 'i') };
+    }
+ 
+    // ── Price filter
     if (minPrice || maxPrice) {
       filter.price = {};
-      if (minPrice) {
-        filter.price.$gte = Number(minPrice);
-      }
-      if (maxPrice) {
-        filter.price.$lte = Number(maxPrice);
-      }
+      if (minPrice) filter.price.$gte = Number(minPrice);
+      if (maxPrice) filter.price.$lte = Number(maxPrice);
     }
-
-    const pageNum = Number(page) || 1;
-    const limitNum = Number(limit) || 10;
-
-    const skip = (pageNum - 1) * limitNum;
-    const total = await bookModel.countDocuments(filter);
-
-    const books = await bookModel
-      .find(filter)
-      .skip(Number(skip))
-      .limit(Number(limit))
-      .sort({ createdAt: -1 });
-
+ 
+    const pageNum  = Math.max(Number(page)  || 1, 1);
+    const limitNum = Math.max(Number(limit) || 10, 1);
+    const skip     = (pageNum - 1) * limitNum;
+ 
+    const [total, books] = await Promise.all([
+      bookModel.countDocuments(filter),
+      bookModel
+        .find(filter)
+        .skip(skip)
+        .limit(limitNum)
+        .sort({ createdAt: -1 }),
+    ]);
+ 
     res.status(200).json({
       message: "Books retrieved successfully",
       total,
-      page: Number(page),
-      pages: Math.ceil(total / limit),
+      page:  pageNum,
+      pages: Math.ceil(total / limitNum),
       books,
     });
   } catch (error) {
