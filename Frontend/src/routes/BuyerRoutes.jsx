@@ -6,6 +6,7 @@ import Cart from "../pages/buyer/Cart";
 import Checkout from "../pages/buyer/Checkout";
 import Payment from "../pages/buyer/Payment";
 import MyOrders from "../pages/buyer/MyOrders";
+import OrderDetails from "../pages/buyer/OrderDetails";
 
 export const buyerRoutes = () => (
   <>
@@ -41,6 +42,15 @@ export const buyerRoutes = () => (
       element={
         <ProtectedRoute>
           <MyOrders />
+        </ProtectedRoute>
+      }
+    />
+
+    <Route
+      path="/orders/:orderId"
+      element={
+        <ProtectedRoute>
+          <OrderDetails />
         </ProtectedRoute>
       }
     />

@@ -27,7 +27,7 @@ router.patch("/:orderId/cancel", authMiddlewares.authMiddleware, orderController
 /* Seller Routes */
 
 // Get all Orders for Seller's Books
-router.get("/seller/allOrders", authMiddlewares.authMiddleware, sellerMiddleware, orderController.getSellerOrders);
+router.get("/seller/all-orders", authMiddlewares.authMiddleware, sellerMiddleware, orderController.getSellerOrders);
 
 // Update Order Status (e.g., mark as shipped, delivered)
 router.patch("/:orderId/status", authMiddlewares.authMiddleware, sellerMiddleware, orderController.updateOrderStatus);

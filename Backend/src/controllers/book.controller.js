@@ -4,7 +4,7 @@ const {uploadFile, deleteFromImageKit} = require("../services/storage.service");
 // Create a new book
 async function createBook(req, res) {
   try {
-    const { title, description, price, category, stock } = req.body;
+    const { title, author, description, price, category, stock } = req.body;
 
     const seller = req.user.id;
 
@@ -42,6 +42,7 @@ async function createBook(req, res) {
 
     const book = await bookModel.create({
       title,
+      author,
       description,
       price: Number(price),
       category,
@@ -168,7 +169,7 @@ async function updateBook(req, res) {
       });
     }
 
-    const allowedFields = ["title", "description", "price", "category", "stock"];
+    const allowedFields = ["title", "author", "description", "price", "category", "stock"];
     const updates = {};
 
     allowedFields.forEach((field) => {

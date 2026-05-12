@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
+import API from "../api/axios";
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Bricolage+Grotesque:wght@700;800&display=swap');
@@ -37,7 +38,6 @@ const styles = `
     position: relative;
   }
 
-  /* Premium top glow line */
   .nav-bar::before {
     content: '';
     position: absolute;
@@ -54,7 +54,6 @@ const styles = `
     pointer-events: none;
   }
 
-  /* Subtle ambient glow behind navbar */
   .nav-bar::after {
     content: '';
     position: absolute;
@@ -66,7 +65,6 @@ const styles = `
     z-index: -1;
   }
 
-  /* LOGO */
   .nav-logo {
     display: flex;
     align-items: center;
@@ -93,7 +91,6 @@ const styles = `
 
   .nav-logo-text span { color: #818cf8; }
 
-  /* DESKTOP LINKS */
   .nav-links {
     display: flex;
     align-items: center;
@@ -134,7 +131,6 @@ const styles = `
     flex-shrink: 0;
   }
 
-  /* Separator dot between link groups */
   .nav-sep-dot {
     width: 3px; height: 3px;
     border-radius: 50%;
@@ -143,7 +139,6 @@ const styles = `
     margin: 0 4px;
   }
 
-  /* RIGHT ACTIONS */
   .nav-actions {
     display: flex;
     align-items: center;
@@ -151,7 +146,6 @@ const styles = `
     flex-shrink: 0;
   }
 
-  /* CART */
   .nav-cart {
     position: relative;
     width: 40px; height: 40px;
@@ -187,7 +181,6 @@ const styles = `
     box-shadow: 0 2px 6px rgba(99,102,241,0.4);
   }
 
-  /* AUTH BUTTONS */
   .nav-btn-ghost {
     padding: 8px 18px;
     border-radius: 9px;
@@ -233,7 +226,6 @@ const styles = `
     box-shadow: 0 8px 24px rgba(99,102,241,0.5);
   }
 
-  /* AVATAR / USER MENU */
   .nav-avatar-btn {
     display: flex;
     align-items: center;
@@ -283,12 +275,11 @@ const styles = `
 
   .nav-avatar-chevron.open { transform: rotate(180deg); }
 
-  /* DROPDOWN MENU */
   .nav-dropdown {
     position: absolute;
     top: calc(100% + 10px);
     right: 0;
-    min-width: 210px;
+    min-width: 220px;
     background: linear-gradient(160deg, rgba(12,10,38,0.98) 0%, rgba(8,7,28,0.98) 100%);
     backdrop-filter: blur(24px);
     border: 1px solid rgba(139,92,246,0.18);
@@ -368,7 +359,6 @@ const styles = `
     flex-shrink: 0;
   }
 
-  /* MOBILE TOGGLE */
   .nav-mobile-toggle {
     display: none;
     width: 40px; height: 40px;
@@ -394,7 +384,6 @@ const styles = `
     .nav-btn-ghost { display: none; }
   }
 
-  /* MOBILE DRAWER */
   .nav-drawer-overlay {
     position: fixed;
     inset: 0;
@@ -581,9 +570,216 @@ const styles = `
     background: linear-gradient(135deg, #5254cc, #4338ca);
     box-shadow: 0 6px 22px rgba(99,102,241,0.5);
   }
+
+  /* ── MODAL OVERLAY ── */
+  .nm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(10px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: nav-fade-in 0.2s ease;
+  }
+
+  .nm-modal {
+    width: 100%;
+    max-width: 480px;
+    background: linear-gradient(160deg, rgba(12,10,38,0.99) 0%, rgba(8,7,28,0.99) 100%);
+    border: 1px solid rgba(139,92,246,0.2);
+    border-radius: 22px;
+    box-shadow:
+      0 32px 80px rgba(0,0,0,0.7),
+      0 0 0 1px rgba(255,255,255,0.04) inset;
+    overflow: hidden;
+    animation: nm-pop-in 0.22s cubic-bezier(0.22,1,0.36,1);
+    font-family: 'Sora', sans-serif;
+  }
+
+  @keyframes nm-pop-in {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .nm-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 22px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.02);
+  }
+
+  .nm-title {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 18px;
+    font-weight: 800;
+    color: #f1f5f9;
+    letter-spacing: -0.03em;
+  }
+
+  .nm-close {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.5);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.18s;
+  }
+
+  .nm-close:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+  .nm-body { padding: 22px; }
+
+  /* Avatar row in profile modal */
+  .nm-avatar-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 22px;
+    padding: 16px;
+    background: rgba(99,102,241,0.06);
+    border: 1px solid rgba(139,92,246,0.14);
+    border-radius: 14px;
+  }
+
+  .nm-avatar-big {
+    width: 54px; height: 54px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #6366f1, #818cf8);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+    box-shadow: 0 4px 16px rgba(99,102,241,0.4);
+  }
+
+  .nm-avatar-info-name {
+    font-size: 16px; font-weight: 600;
+    color: #f1f5f9;
+  }
+
+  .nm-avatar-info-role {
+    font-size: 12px;
+    color: rgba(139,92,246,0.8);
+    text-transform: capitalize;
+    margin-top: 3px;
+  }
+
+  /* Field rows */
+  .nm-field {
+    margin-bottom: 14px;
+  }
+
+  .nm-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(139,92,246,0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 6px;
+  }
+
+  .nm-value {
+    font-size: 14px;
+    color: rgba(255,255,255,0.82);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 10px 14px;
+    word-break: break-all;
+  }
+
+  .nm-value.muted { color: rgba(255,255,255,0.3); font-style: italic; }
+
+  /* Address cards */
+  .nm-addr-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 13px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+  }
+
+  .nm-addr-card:last-child { margin-bottom: 0; }
+
+  .nm-addr-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .nm-addr-tag {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #818cf8;
+    background: rgba(99,102,241,0.12);
+    border: 1px solid rgba(99,102,241,0.2);
+    padding: 2px 8px;
+    border-radius: 6px;
+  }
+
+  .nm-addr-default {
+    font-size: 10px;
+    color: rgba(34,197,94,0.8);
+    font-weight: 600;
+  }
+
+  .nm-addr-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.85);
+    margin-bottom: 4px;
+  }
+
+  .nm-addr-text {
+    font-size: 13.5px;
+    color: rgba(255,255,255,0.7);
+    line-height: 1.55;
+  }
+
+  .nm-addr-phone {
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    margin-top: 6px;
+  }
+
+  .nm-loading {
+    text-align: center;
+    padding: 32px;
+    color: rgba(255,255,255,0.3);
+    font-size: 13px;
+  }
+
+  .nm-empty {
+    text-align: center;
+    padding: 28px 16px;
+    color: rgba(255,255,255,0.3);
+    font-size: 13px;
+  }
+
+  .nm-spinner {
+    width: 22px; height: 22px;
+    border: 2px solid rgba(99,102,241,0.25);
+    border-top-color: #6366f1;
+    border-radius: 50%;
+    animation: nm-spin 0.7s linear infinite;
+    margin: 0 auto 10px;
+  }
+
+  @keyframes nm-spin { to { transform: rotate(360deg); } }
 `;
 
-// Icons
+// ── Icons ──────────────────────────────────────────────
 const IconHome = () => (
   <svg className="nav-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z"/>
@@ -621,6 +817,16 @@ const IconLogout = () => (
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
   </svg>
 );
+const IconProfile = () => (
+  <svg className="nav-dropdown-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+  </svg>
+);
+const IconAddress = () => (
+  <svg className="nav-dropdown-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+  </svg>
+);
 const IconChevron = ({ className }) => (
   <svg className={`nav-avatar-chevron ${className || ""}`} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="6 9 12 15 18 9"/>
@@ -637,16 +843,137 @@ const IconClose = () => (
   </svg>
 );
 
+// ── Profile Modal ──────────────────────────────────────
+function ProfileModal({ user, onClose }) {
+  return (
+    <div className="nm-overlay" onClick={onClose}>
+      <div className="nm-modal" onClick={e => e.stopPropagation()}>
+        <div className="nm-head">
+          <span className="nm-title">My Profile</span>
+          <button className="nm-close" onClick={onClose}><IconClose /></button>
+        </div>
+        <div className="nm-body">
+          <div className="nm-avatar-row">
+            <div className="nm-avatar-big">{user.fullname?.charAt(0).toUpperCase()}</div>
+            <div>
+              <div className="nm-avatar-info-name">{user.fullname}</div>
+              <div className="nm-avatar-info-role">{user.role}</div>
+            </div>
+          </div>
+
+          <div className="nm-field">
+            <div className="nm-label">Full Name</div>
+            <div className="nm-value">{user.fullname || '—'}</div>
+          </div>
+
+          <div className="nm-field">
+            <div className="nm-label">Email</div>
+            <div className="nm-value">{user.email || '—'}</div>
+          </div>
+
+          <div className="nm-field">
+            <div className="nm-label">Phone</div>
+            <div className={`nm-value ${!user.phone ? 'muted' : ''}`}>
+              {user.phone || 'Not added'}
+            </div>
+          </div>
+
+          <div className="nm-field">
+            <div className="nm-label">Role</div>
+            <div className="nm-value" style={{ textTransform: 'capitalize' }}>{user.role}</div>
+          </div>
+
+          <div className="nm-field">
+            <div className="nm-label">Member Since</div>
+            <div className="nm-value">
+              {user.createdAt
+                ? new Date(user.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+                : '—'}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Saved Addresses Modal ──────────────────────────────
+function AddressModal({ onClose }) {
+  const [addresses, setAddresses] = useState([]);
+  const [loading, setLoading]     = useState(true);
+
+  useEffect(() => {
+    const fetchAddresses = async () => {
+      try {
+        // ✅ FIX 1: correct route — mounted at /api/users/me/addresses → GET /
+        const { data } = await API.get(`/users/me/addresses`);
+        // ✅ FIX 2: controller returns { address: [...] } not { addresses: [...] }
+        setAddresses(data.address || []);
+      } catch {
+        toast.error('Failed to load addresses');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAddresses();
+  }, []);
+
+  return (
+    <div className="nm-overlay" onClick={onClose}>
+      <div className="nm-modal" onClick={e => e.stopPropagation()}>
+        <div className="nm-head">
+          <span className="nm-title">Saved Addresses</span>
+          <button className="nm-close" onClick={onClose}><IconClose /></button>
+        </div>
+        <div className="nm-body">
+          {loading ? (
+            <div className="nm-loading">
+              <div className="nm-spinner" />
+              Loading addresses…
+            </div>
+          ) : addresses.length === 0 ? (
+            <div className="nm-empty">No saved addresses yet.</div>
+          ) : (
+            addresses.map((addr, i) => (
+              <div key={addr._id || i} className="nm-addr-card">
+                <div className="nm-addr-top">
+                  {/* ✅ FIX 3: schema has no label/type field — use index as fallback */}
+                  <span className="nm-addr-tag">Address {i + 1}</span>
+                  {addr.isDefault && <span className="nm-addr-default">✓ Default</span>}
+                </div>
+
+                {/* ✅ FIX 4: schema fields are name, street, city, state, pincode, country */}
+                {addr.name && <div className="nm-addr-name">{addr.name}</div>}
+                <div className="nm-addr-text">
+                  {[addr.street, addr.city, addr.state, addr.pincode, addr.country]
+                    .filter(Boolean)
+                    .join(', ')}
+                </div>
+
+                {/* ✅ FIX 5: phone is on the address subdoc, not top-level */}
+                {addr.phone && <div className="nm-addr-phone">📞 {addr.phone}</div>}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Navbar ────────────────────────────────────────
 export default function Navbar() {
   const { user, logout } = useAuth();
-  const { cart } = useCart();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const { cart }         = useCart();
+  const navigate         = useNavigate();
+  const location         = useLocation();
 
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerOpen,   setDrawerOpen]   = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [activeModal,  setActiveModal]  = useState(null); // 'profile' | 'address' | null
   const dropdownRef = useRef(null);
 
+  // Close dropdown on outside click
   useEffect(() => {
     const handler = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -657,6 +984,7 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  // Hide navbar on auth pages
   if (location.pathname === "/login" || location.pathname === "/register") return null;
 
   const handleLogout = async () => {
@@ -670,7 +998,6 @@ export default function Navbar() {
     }
   };
 
-  // Cart click — redirect to login if not authenticated
   const handleCartClick = (e) => {
     if (!user) {
       e.preventDefault();
@@ -679,17 +1006,25 @@ export default function Navbar() {
     }
   };
 
+  const openModal = (type) => {
+    setDropdownOpen(false);
+    setDrawerOpen(false);
+    setActiveModal(type);
+  };
+
   const isActive = (path) => location.pathname === path ? "active" : "";
+
+  const isSeller = user?.role === "seller";
 
   const sellerLinks = [
     { label: "Dashboard", path: "/seller/dashboard", icon: <IconDashboard /> },
-    { label: "My Books", path: "/seller/my-books", icon: <IconInventory /> },
-    { label: "Orders", path: "/seller/orders", icon: <IconOrders /> },
+    { label: "My Books",  path: "/seller/books",     icon: <IconInventory /> },
+    { label: "Orders",    path: "/seller/orders",    icon: <IconOrders /> },
   ];
   const buyerLinks = [
     { label: "My Orders", path: "/my-orders", icon: <IconOrders /> },
   ];
-  const navLinks = user?.role === "seller" ? sellerLinks : buyerLinks;
+  const navLinks = isSeller ? sellerLinks : buyerLinks;
 
   return (
     <>
@@ -698,10 +1033,11 @@ export default function Navbar() {
         <nav className="nav-bar">
 
           {/* Logo */}
-          <Link to="/" className="nav-logo">
+          <Link to={user ? (isSeller ? "/seller/dashboard" : "/books") : "/"} className="nav-logo">
             <div className="nav-logo-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
               </svg>
             </div>
             <span className="nav-logo-text">Book<span>Store</span></span>
@@ -709,14 +1045,17 @@ export default function Navbar() {
 
           {/* Desktop Nav Links */}
           <div className="nav-links">
-            <Link to="/" className={`nav-link ${isActive("/")}`}>
-              <IconHome /> Home
-            </Link>
-            <Link to="/books" className={`nav-link ${isActive("/books")}`}>
-              <IconBooks /> Books
-            </Link>
+            {!isSeller && (
+              <>
+                <Link to="/" className={`nav-link ${isActive("/")}`}>
+                  <IconHome /> Home
+                </Link>
+                <Link to="/books" className={`nav-link ${isActive("/books")}`}>
+                  <IconBooks /> Books
+                </Link>
+              </>
+            )}
 
-            {/* Separator dot before role-specific links */}
             {user && <span className="nav-sep-dot" />}
 
             {user && navLinks.map((link) => (
@@ -729,13 +1068,9 @@ export default function Navbar() {
           {/* Right Actions */}
           <div className="nav-actions">
 
-            {/* Cart — always visible for non-sellers, redirects to login if not logged in */}
+            {/* Cart — buyers only */}
             {user?.role !== "seller" && (
-              <Link
-                to="/cart"
-                className="nav-cart"
-                onClick={handleCartClick}
-              >
+              <Link to="/cart" className="nav-cart" onClick={handleCartClick}>
                 <IconCart />
                 {user && cart?.totalItems > 0 && (
                   <span className="nav-cart-badge">{cart.totalItems}</span>
@@ -743,21 +1078,15 @@ export default function Navbar() {
               </Link>
             )}
 
-            {/* Auth */}
             {!user ? (
               <>
-                <Link to="/login" className="nav-btn-ghost">Login</Link>
+                <Link to="/login"    className="nav-btn-ghost">Login</Link>
                 <Link to="/register" className="nav-btn-primary">Get Started</Link>
               </>
             ) : (
               <div ref={dropdownRef} style={{ position: "relative" }}>
-                <button
-                  className="nav-avatar-btn"
-                  onClick={() => setDropdownOpen((p) => !p)}
-                >
-                  <div className="nav-avatar">
-                    {user.fullname?.charAt(0).toUpperCase()}
-                  </div>
+                <button className="nav-avatar-btn" onClick={() => setDropdownOpen(p => !p)}>
+                  <div className="nav-avatar">{user.fullname?.charAt(0).toUpperCase()}</div>
                   <span className="nav-avatar-name">{user.fullname?.split(" ")[0]}</span>
                   <IconChevron className={dropdownOpen ? "open" : ""} />
                 </button>
@@ -768,6 +1097,7 @@ export default function Navbar() {
                       <div className="nav-dropdown-name">{user.fullname}</div>
                       <div className="nav-dropdown-role">{user.role}</div>
                     </div>
+
                     {navLinks.map((link) => (
                       <Link
                         key={link.path}
@@ -778,7 +1108,18 @@ export default function Navbar() {
                         {link.icon} {link.label}
                       </Link>
                     ))}
+
                     <div className="nav-dropdown-divider" />
+
+                    <button className="nav-dropdown-item" onClick={() => openModal('profile')}>
+                      <IconProfile /> Profile
+                    </button>
+                    <button className="nav-dropdown-item" onClick={() => openModal('address')}>
+                      <IconAddress /> Saved Addresses
+                    </button>
+
+                    <div className="nav-dropdown-divider" />
+
                     <button className="nav-dropdown-item danger" onClick={handleLogout}>
                       <IconLogout /> Logout
                     </button>
@@ -787,7 +1128,6 @@ export default function Navbar() {
               </div>
             )}
 
-            {/* Mobile toggle */}
             <button className="nav-mobile-toggle" onClick={() => setDrawerOpen(true)}>
               <IconMenu />
             </button>
@@ -801,12 +1141,16 @@ export default function Navbar() {
         <>
           <div className="nav-drawer-overlay" onClick={() => setDrawerOpen(false)} />
           <div className="nav-drawer">
-
             <div className="nav-drawer-head">
-              <Link to="/" className="nav-logo" onClick={() => setDrawerOpen(false)}>
+              <Link
+                to={user ? (isSeller ? "/seller/dashboard" : "/books") : "/"}
+                className="nav-logo"
+                onClick={() => setDrawerOpen(false)}
+              >
                 <div className="nav-logo-icon">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
                   </svg>
                 </div>
                 <span className="nav-logo-text">Book<span>Store</span></span>
@@ -827,20 +1171,29 @@ export default function Navbar() {
             )}
 
             <div className="nav-drawer-links">
-              <Link to="/" className={`nav-drawer-link ${isActive("/")}`} onClick={() => setDrawerOpen(false)}>
-                <IconHome /> Home
-              </Link>
-              <Link to="/books" className={`nav-drawer-link ${isActive("/books")}`} onClick={() => setDrawerOpen(false)}>
-                <IconBooks /> Books
-              </Link>
+              {!isSeller && (
+                <>
+                  <Link to="/" className={`nav-drawer-link ${isActive("/")}`} onClick={() => setDrawerOpen(false)}>
+                    <IconHome /> Home
+                  </Link>
+                  <Link to="/books" className={`nav-drawer-link ${isActive("/books")}`} onClick={() => setDrawerOpen(false)}>
+                    <IconBooks /> Books
+                  </Link>
+                </>
+              )}
 
               {user && navLinks.map((link) => (
-                <Link key={link.path} to={link.path} className={`nav-drawer-link ${isActive(link.path)}`} onClick={() => setDrawerOpen(false)}>
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={`nav-drawer-link ${isActive(link.path)}`}
+                  onClick={() => setDrawerOpen(false)}
+                >
                   {link.icon} {link.label}
                 </Link>
               ))}
 
-              {/* Cart in drawer — always visible for non-sellers */}
+              {/* Cart in drawer — buyers only */}
               {user?.role !== "seller" && (
                 <Link
                   to="/cart"
@@ -862,6 +1215,13 @@ export default function Navbar() {
               {user && (
                 <>
                   <div className="nav-drawer-sep" />
+                  <button className="nav-drawer-link" onClick={() => openModal('profile')}>
+                    <IconProfile /> Profile
+                  </button>
+                  <button className="nav-drawer-link" onClick={() => openModal('address')}>
+                    <IconAddress /> Saved Addresses
+                  </button>
+                  <div className="nav-drawer-sep" />
                   <button className="nav-drawer-link danger" onClick={handleLogout}>
                     <IconLogout /> Logout
                   </button>
@@ -871,13 +1231,20 @@ export default function Navbar() {
 
             {!user && (
               <div className="nav-drawer-auth">
-                <Link to="/login" className="nav-drawer-auth-btn outline" onClick={() => setDrawerOpen(false)}>Login</Link>
-                <Link to="/register" className="nav-drawer-auth-btn filled" onClick={() => setDrawerOpen(false)}>Get Started</Link>
+                <Link to="/login"    className="nav-drawer-auth-btn outline" onClick={() => setDrawerOpen(false)}>Login</Link>
+                <Link to="/register" className="nav-drawer-auth-btn filled"  onClick={() => setDrawerOpen(false)}>Get Started</Link>
               </div>
             )}
-
           </div>
         </>
+      )}
+
+      {/* Modals */}
+      {activeModal === 'profile' && (
+        <ProfileModal user={user} onClose={() => setActiveModal(null)} />
+      )}
+      {activeModal === 'address' && (
+        <AddressModal onClose={() => setActiveModal(null)} />
       )}
     </>
   );

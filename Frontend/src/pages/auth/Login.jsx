@@ -517,7 +517,7 @@ export default function Login() {
       }
       const user = await login(payload);
       toast.success(`Welcome back, ${user.fullname}!`);
-      navigate(user.role === "seller" ? "/seller/dashboard" : "/", { replace: true });
+      navigate(user.role === "seller" ? "/seller/dashboard" : "/books", { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || "Login failed. Please try again.");
     } finally {

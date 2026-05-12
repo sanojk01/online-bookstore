@@ -350,6 +350,11 @@ async function cancelOrder(req, res) {
 
     order.status = "cancelled";
     order.cancelledAt = new Date();
+
+    if (order.paymentStatus === "paid") {
+      order.paymentStatus = "refunded";
+    }
+
     await order.save();
 
     // Restore stock for each book in the order
@@ -459,90 +464,174 @@ async function updateOrderStatus(req, res) {
     const { orderId } = req.params;
     const { status } = req.body;
 
-    const allowedStatus = ["pending", "shipped", "delivered", "returned", "cancelled"];
+    const allowedStatus = [
+      "pending",
+      "shipped",
+      "delivered",
+      "cancelled",
+    ];
 
-    if (!status || !allowedStatus.includes(status)) {
-      return res.status(400).json({ message: `Invalid status. Allowed values: ${allowedStatus.join(', ')}` });
+    if (
+      !status ||
+      !allowedStatus.includes(status)
+    ) {
+      return res.status(400).json({
+        message: `Invalid status. Allowed values: ${allowedStatus.join(", ")}`,
+      });
     }
 
-    const order = await orderModel.findById(orderId);
+    const order =
+      await orderModel.findById(orderId);
 
     if (!order) {
-      return res.status(404).json({ message: "Order not found" });
+      return res.status(404).json({
+        message: "Order not found",
+      });
     }
 
-    const myBooks = await bookModel.find({ seller: req.user._id }).select("_id");
-    const bookIds = myBooks.map((book) => book._id.toString());
+    const myBooks =
+      await bookModel
+        .find({
+          seller: req.user._id,
+        })
+        .select("_id");
 
-    const isSellerOrder = order.items.some((item) => bookIds.includes(item.book.toString()));
+    const bookIds = new Set(
+      myBooks.map((book) =>
+        book._id.toString()
+      )
+    );
+
+    const isSellerOrder =
+      order.items.some((item) =>
+        bookIds.has(
+          item.book.toString()
+        )
+      );
 
     if (!isSellerOrder) {
-      return res
-        .status(403)
-        .json({ message: "You are not authorized to update this order's status" });
-    }
-
-    // Aready Delivered or Cancelled orders cannot be updated
-
-    if (["delivered", "cancelled"].includes(order.status)) {
-        return res.status(400).json({ message: `Cannot update status of an order that is already ${order.status}` });
-    }
-
-    // Progression rules: pending -> shipped -> delivered. Cannot skip steps or move backwards. Cancelled can be set from any status except delivered.
-
-    const statusOrder = ["pending", "shipped", "delivered", "returned"];
-
-    const currentStatusIndex = statusOrder.indexOf(order.status);
-    const newStatusIndex = statusOrder.indexOf(status);
-
-    if (status !== "cancelled" && newStatusIndex < currentStatusIndex) {
-      return res.status(400).json({ 
-        message: `Cannot move status back from "${order.status}" to "${status}".` 
+      return res.status(403).json({
+        message:
+          "You are not authorized to update this order's status",
       });
     }
 
-    if (status !== 'cancelled' && newStatusIndex > currentStatusIndex + 1) {
-      return res.status(400).json({ 
-        message: `Cannot skip status. Current: "${order.status}", next allowed: "${statusOrder[currentStatusIndex + 1]}".` 
+    const terminalStatuses = [
+      "delivered",
+      "cancelled",
+      "returned",
+    ];
+
+    if (
+      terminalStatuses.includes(
+        order.status
+      )
+    ) {
+      return res.status(400).json({
+        message: `Cannot update an order that is already "${order.status}"`,
       });
     }
 
-    // If marking as delivered, ensure it was previously shipped
+    const statusOrder = [
+      "pending",
+      "shipped",
+      "delivered",
+    ];
 
-    if (status === 'delivered') {
-      order.deliveredAt   = new Date();
-      order.paymentStatus = 'paid';
+    const currentIndex =
+      statusOrder.indexOf(order.status);
+
+    const newIndex =
+      statusOrder.indexOf(status);
+
+    if (status !== "cancelled") {
+
+      if (newIndex < currentIndex) {
+        return res.status(400).json({
+          message: `Cannot move status back from "${order.status}" to "${status}"`,
+        });
+      }
+
+      if (
+        newIndex >
+        currentIndex + 1
+      ) {
+        return res.status(400).json({
+          message: `Cannot skip status. Current: "${order.status}", next allowed: "${statusOrder[currentIndex + 1]}"`,
+        });
+      }
     }
 
-    // If Seller is cancelling, restore stock for each book in the order
+    if (status === "delivered") {
 
-    if (status === 'cancelled') {
-      
-        for (const item of order.items) {
-            const book = await bookModel.findById(item.book);
-            if (book) {
-                book.stock += item.quantity;
-                await book.save();
+      order.deliveredAt =
+        new Date();
+
+      order.paymentStatus =
+        "paid";
+    }
+
+    if (status === "cancelled") {
+
+      await Promise.all(
+        order.items.map((item) => {
+
+          const bookId =
+            item.book?._id ||
+            item.book;
+
+          return bookModel.updateOne(
+            { _id: bookId },
+            {
+              $inc: {
+                stock:
+                  item.quantity,
+              },
             }
+          );
+        })
+      );
+
+      order.cancelledAt = new Date();
+
+        if (order.paymentStatus === "paid") {
+          order.paymentStatus = "refunded";
         }
-        order.cancelledAt = new Date();
     }
 
     order.status = status;
+
     await order.save();
 
-    await order.populate("items.book", "title price");
+    const populatedOrder =
+      await orderModel
+        .findById(order._id)
+        .populate(
+          "items.book",
+          "title price"
+        );
 
-    res.status(200).json({ 
-        message: "Order status updated successfully", 
-        order 
+    return res.status(200).json({
+      message:
+        "Order status updated successfully",
+
+      order: populatedOrder,
     });
 
   } catch (error) {
-     res.status(500).json({ 
-        message: "Error updating order status", error: error.message 
-     });
-    }
+
+    console.error(
+      "updateOrderStatus error:",
+      error
+    );
+
+    return res.status(500).json({
+      message:
+        "Error updating order status",
+
+      error: error.message,
+    });
+  }
 }
 
 // Approve Return Request
